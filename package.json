@@ -1,0 +1,21 @@
+{
+  "name": "stocks-crud-app",
+  "version": "1.0.0",
+  "description": "Stocks CRUD application using Node.js, Express, PostgreSQL, and vanilla JavaScript.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "crud",
+    "express",
+    "postgresql",
+    "stocks"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "pg": "^8.20.0"
+  }
+}

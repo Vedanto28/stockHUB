@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stocks Inventory Manager</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">College Demo Ready</p>
+          <h1>Stocks Inventory Manager</h1>
+          <p class="hero-copy">
+            Add, edit, and delete stock records with a clean PostgreSQL-backed CRUD workflow.
+          </p>
+        </div>
+      </section>
+
+      <section class="app-grid">
+        <article class="panel">
+          <h2 id="form-title">Add New Stock</h2>
+          <p class="panel-copy">Use the form to create a new stock or edit an existing one.</p>
+
+          <form id="stock-form" novalidate>
+            <input type="hidden" id="stock-id" />
+
+            <label class="field" for="name">
+              <span>Stock Name</span>
+              <input id="name" name="name" type="text" maxlength="255" placeholder="Example: Reliance" required />
+            </label>
+
+            <label class="field" for="sector">
+              <span>Sector</span>
+              <select id="sector" name="sector" required>
+                <option value="">Select Sector</option>
+                <option value="Energy">Energy</option>
+                <option value="Materials">Materials</option>
+                <option value="Industrials">Industrials</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Financials">Financials</option>
+                <option value="Consumer Discretionary">Consumer Discretionary</option>
+                <option value="Consumer Staples">Consumer Staples</option>
+                <option value="Information Technology">Information Technology</option>
+                <option value="Communication Services">Communication Services</option>
+                <option value="Real Estate">Real Estate</option>
+              </select>
+            </label>
+
+            <label class="field" for="price">
+              <span>Price</span>
+              <input id="price" name="price" type="number" min="0" step="0.01" placeholder="0.00" required />
+            </label>
+
+            <label class="field" for="quantity">
+              <span>Quantity</span>
+              <input id="quantity" name="quantity" type="number" min="0" step="1" placeholder="0" required />
+            </label>
+
+            <div class="form-actions">
+              <button type="submit" id="submit-btn">Add Stock</button>
+              <button type="button" id="cancel-btn" class="secondary" hidden>Cancel Edit</button>
+            </div>
+          </form>
+
+          <p id="message" class="message" aria-live="polite"></p>
+        </article>
+
+        <div class="content-stack">
+          <article class="panel">
+            <div class="table-header">
+              <div>
+                <h2>All Stocks</h2>
+                <p class="panel-copy">Search, filter, and sort records without reloading the page.</p>
+              </div>
+              <button type="button" id="refresh-btn" class="secondary">Refresh</button>
+            </div>
+
+            <section class="controls-grid" aria-label="Stock controls">
+              <label class="field" for="search-input">
+                <span>Search by Name</span>
+                <input id="search-input" type="search" placeholder="Search stocks..." />
+              </label>
+
+              <label class="field" for="sector-filter">
+                <span>Filter by Sector</span>
+                <select id="sector-filter">
+                  <option value="All">All Sectors</option>
+                  <option value="Energy">Energy</option>
+                  <option value="Materials">Materials</option>
+                  <option value="Industrials">Industrials</option>
+                  <option value="Utilities">Utilities</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Financials">Financials</option>
+                  <option value="Consumer Discretionary">Consumer Discretionary</option>
+                  <option value="Consumer Staples">Consumer Staples</option>
+                  <option value="Information Technology">Information Technology</option>
+                  <option value="Communication Services">Communication Services</option>
+                  <option value="Real Estate">Real Estate</option>
+                </select>
+              </label>
+
+              <label class="field" for="sort-select">
+                <span>Sort Records</span>
+                <select id="sort-select">
+                  <option value="default">Default Order</option>
+                  <option value="price-asc">Price: Low to High</option>
+                  <option value="price-desc">Price: High to Low</option>
+                  <option value="quantity-asc">Quantity: Low to High</option>
+                  <option value="quantity-desc">Quantity: High to Low</option>
+                </select>
+              </label>
+            </section>
+
+            <div class="table-wrap">
+              <table id="stocks-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Sector</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel chart-panel">
+            <div class="chart-header">
+              <div>
+                <h2>Sector Distribution</h2>
+                <p class="panel-copy">Pie chart based on the number of stocks in each sector.</p>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="sector-chart" aria-label="Pie chart showing stocks by sector"></canvas>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
