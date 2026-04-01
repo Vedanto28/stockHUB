@@ -1,13 +1,6 @@
 --
 -- PostgreSQL database dump
---
 
-\restrict rnZN5WBbpg9eKjRjbSzBjJcLz16uFLqtZpikCH7u8OKKIs0xvPeVNGrS7mmpJaL
-
--- Dumped from database version 18.2
--- Dumped by pg_dump version 18.2
-
--- Started on 2026-03-31 15:47:58
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -31,12 +24,12 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.stocks (
-    id integer NOT NULL,
-    name character varying(100) NOT NULL,
-    sector character varying(50),
-    price numeric(10,2) NOT NULL,
-    quantity integer NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    sector VARCHAR(50),
+    price NUMERIC(10,2) NOT NULL,
+    quantity INT NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT valid_price CHECK ((price > (0)::numeric)),
     CONSTRAINT valid_quantity CHECK ((quantity >= 0)),
     CONSTRAINT valid_sector CHECK (((sector)::text = ANY ((ARRAY['Energy'::character varying, 'Materials'::character varying, 'Industrials'::character varying, 'Utilities'::character varying, 'Healthcare'::character varying, 'Financials'::character varying, 'Consumer Discretionary'::character varying, 'Consumer Staples'::character varying, 'Information Technology'::character varying, 'Communication Services'::character varying, 'Real Estate'::character varying])::text[])))
@@ -106,11 +99,4 @@ ALTER TABLE ONLY public.stocks
     ADD CONSTRAINT stocks_pkey PRIMARY KEY (id);
 
 
--- Completed on 2026-03-31 15:47:58
-
---
--- PostgreSQL database dump complete
---
-
-\unrestrict rnZN5WBbpg9eKjRjbSzBjJcLz16uFLqtZpikCH7u8OKKIs0xvPeVNGrS7mmpJaL
 

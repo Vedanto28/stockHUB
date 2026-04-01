@@ -14,6 +14,23 @@ const sortSelect = document.getElementById('sort-select');
 const messageElement = document.getElementById('message');
 const tableBody = document.querySelector('#stocks-table tbody');
 const chartCanvas = document.getElementById('sector-chart');
+const MAX_NAME_LENGTH = 255;
+const MAX_INT32 = 2147483647;
+const ALLOWED_SECTORS = Object.freeze([
+  'Energy',
+  'Materials',
+  'Industrials',
+  'Utilities',
+  'Healthcare',
+  'Financials',
+  'Consumer Discretionary',
+  'Consumer Staples',
+  'Information Technology',
+  'Communication Services',
+  'Real Estate',
+  'Unspecified',
+]);
+const allowedSectorSet = new Set(ALLOWED_SECTORS);
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -36,24 +53,78 @@ function setLoading(isLoading) {
   refreshBtn.disabled = isLoading;
 }
 
-function validateFormData(payload) {
-  if (!payload.name) {
-    return 'Name is required.';
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function parsePositivePrice(value) {
+  const priceText = normalizeText(value);
+
+  if (!/^\d+(\.\d{1,2})?$/.test(priceText)) {
+    return { error: 'Price must be a valid amount with up to 2 decimal places.' };
   }
 
-  if (!payload.sector) {
-    return 'Please select a sector.';
+  const price = Number(priceText);
+  if (!Number.isFinite(price) || price <= 0) {
+    return { error: 'Price must be greater than 0.' };
   }
 
-  if (!Number.isFinite(payload.price) || payload.price <= 0) {
-    return 'Price must be greater than 0.';
+  return { value: price };
+}
+
+function parseQuantity(value) {
+  const quantityText = normalizeText(value);
+
+  if (!/^(0|[1-9]\d*)$/.test(quantityText)) {
+    return { error: 'Quantity must be a whole number 0 or greater.' };
   }
 
-  if (!Number.isInteger(payload.quantity) || payload.quantity < 0) {
-    return 'Quantity must be 0 or greater.';
+  const quantity = Number(quantityText);
+  if (!Number.isSafeInteger(quantity) || quantity > MAX_INT32) {
+    return { error: `Quantity must be less than or equal to ${MAX_INT32}.` };
   }
 
-  return '';
+  return { value: quantity };
+}
+
+function validateFormData(values) {
+  const name = normalizeText(values.name);
+  const sector = normalizeText(values.sector);
+
+  if (!name) {
+    return { error: 'Name is required.' };
+  }
+
+  if (name.length > MAX_NAME_LENGTH) {
+    return { error: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` };
+  }
+
+  if (!sector) {
+    return { error: 'Please select a sector.' };
+  }
+
+  if (!allowedSectorSet.has(sector)) {
+    return { error: 'Please choose a valid sector.' };
+  }
+
+  const { error: priceError, value: price } = parsePositivePrice(values.price);
+  if (priceError) {
+    return { error: priceError };
+  }
+
+  const { error: quantityError, value: quantity } = parseQuantity(values.quantity);
+  if (quantityError) {
+    return { error: quantityError };
+  }
+
+  return {
+    value: {
+      name,
+      sector,
+      price,
+      quantity,
+    },
+  };
 }
 
 function escapeHtml(value) {
@@ -156,7 +227,7 @@ function renderTable(stocks) {
 
 function renderChart(stocks) {
   const sectorCounts = stocks.reduce((accumulator, stock) => {
-    const key = stock.sector || 'Unknown';
+    const key = stock.sector || 'Unspecified';
     accumulator[key] = (accumulator[key] || 0) + 1;
     return accumulator;
   }, {});
@@ -241,13 +312,12 @@ async function saveStock(event) {
   event.preventDefault();
 
   const stockId = idInput.value;
-  const payload = {
-    name: nameInput.value.trim(),
+  const { error: validationError, value: payload } = validateFormData({
+    name: nameInput.value,
     sector: sectorInput.value,
-    price: Number.parseFloat(priceInput.value),
-    quantity: Number.parseInt(quantityInput.value, 10),
-  };
-  const validationError = validateFormData(payload);
+    price: priceInput.value,
+    quantity: quantityInput.value,
+  });
 
   try {
     if (validationError) {
