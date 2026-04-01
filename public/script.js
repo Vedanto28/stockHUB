@@ -8,9 +8,6 @@ const quantityInput = document.getElementById('quantity');
 const submitBtn = document.getElementById('submit-btn');
 const cancelBtn = document.getElementById('cancel-btn');
 const refreshBtn = document.getElementById('refresh-btn');
-const searchInput = document.getElementById('search-input');
-const sectorFilterInput = document.getElementById('sector-filter');
-const sortSelect = document.getElementById('sort-select');
 const messageElement = document.getElementById('message');
 const tableBody = document.querySelector('#stocks-table tbody');
 const chartCanvas = document.getElementById('sector-chart');
@@ -49,12 +46,12 @@ function setMessage(message, type = '') {
 }
 
 function setLoading(isLoading) {
-  submitBtn.disabled = isLoading;
+  submitBtn.disabled = isLoading;   
   refreshBtn.disabled = isLoading;
 }
 
 function normalizeText(value) {
-  return typeof value === 'string' ? value.trim() : '';
+  return typeof value === 'string' ? value.trim() : ''; 
 }
 
 function parsePositivePrice(value) {
@@ -75,7 +72,7 @@ function parsePositivePrice(value) {
 function parseQuantity(value) {
   const quantityText = normalizeText(value);
 
-  if (!/^(0|[1-9]\d*)$/.test(quantityText)) {
+  if (!/^(0|[1-9]\d*)$/.test(quantityText)) { 
     return { error: 'Quantity must be a whole number 0 or greater.' };
   }
 
@@ -154,32 +151,6 @@ function fillForm(stock) {
   submitBtn.textContent = 'Update Stock';
   cancelBtn.hidden = false;
   nameInput.focus();
-}
-
-function getVisibleStocks() {
-  const searchTerm = searchInput.value.trim().toLowerCase();
-  const selectedSector = sectorFilterInput.value;
-  const selectedSort = sortSelect.value;
-
-  const filteredStocks = state.stocks.filter((stock) => {
-    const matchesSearch = String(stock.name || '').toLowerCase().includes(searchTerm);
-    const matchesSector = selectedSector === 'All' || stock.sector === selectedSector;
-    return matchesSearch && matchesSector;
-  });
-
-  const sortedStocks = [...filteredStocks];
-
-  if (selectedSort === 'price-asc') {
-    sortedStocks.sort((left, right) => Number(left.price) - Number(right.price));
-  } else if (selectedSort === 'price-desc') {
-    sortedStocks.sort((left, right) => Number(right.price) - Number(left.price));
-  } else if (selectedSort === 'quantity-asc') {
-    sortedStocks.sort((left, right) => left.quantity - right.quantity);
-  } else if (selectedSort === 'quantity-desc') {
-    sortedStocks.sort((left, right) => right.quantity - left.quantity);
-  }
-
-  return sortedStocks;
 }
 
 function renderTable(stocks) {
@@ -281,13 +252,6 @@ function renderChart(stocks) {
   });
 }
 
-function renderDashboard() {
-  const visibleStocks = getVisibleStocks();
-  renderTable(visibleStocks);
-  renderChart(visibleStocks);
-  setMessage(`Showing ${visibleStocks.length} stock record${visibleStocks.length === 1 ? '' : 's'}.`);
-}
-
 async function fetchStocks() {
   try {
     setLoading(true);
@@ -299,7 +263,9 @@ async function fetchStocks() {
     }
 
     state.stocks = await response.json();
-    renderDashboard();
+    renderTable(state.stocks);
+    renderChart(state.stocks);
+    setMessage(`Loaded ${state.stocks.length} stock record${state.stocks.length === 1 ? '' : 's'}.`);
   } catch (error) {
     console.error(error);
     setMessage(error.message || 'Failed to fetch stocks.', 'error');
@@ -412,9 +378,6 @@ cancelBtn.addEventListener('click', () => {
   setMessage('Edit cancelled.');
 });
 refreshBtn.addEventListener('click', fetchStocks);
-searchInput.addEventListener('input', renderDashboard);
-sectorFilterInput.addEventListener('change', renderDashboard);
-sortSelect.addEventListener('change', renderDashboard);
 tableBody.addEventListener('click', handleTableAction);
 
 fetchStocks();

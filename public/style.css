@@ -145,13 +145,6 @@ h1 {
   margin-bottom: 18px;
 }
 
-.controls-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 18px;
-}
-
 button {
   border: 0;
   border-radius: 999px;
@@ -261,10 +254,6 @@ tbody tr:hover {
 
 @media (max-width: 860px) {
   .app-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .controls-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -74,47 +74,10 @@
             <div class="table-header">
               <div>
                 <h2>All Stocks</h2>
-                <p class="panel-copy">Search, filter, and sort records without reloading the page.</p>
+                <p class="panel-copy">Showing stock records exactly as they are returned from the database.</p>
               </div>
               <button type="button" id="refresh-btn" class="secondary">Refresh</button>
             </div>
-
-            <section class="controls-grid" aria-label="Stock controls">
-              <label class="field" for="search-input">
-                <span>Search by Name</span>
-                <input id="search-input" type="search" placeholder="Search stocks..." />
-              </label>
-
-              <label class="field" for="sector-filter">
-                <span>Filter by Sector</span>
-                <select id="sector-filter">
-                  <option value="All">All Sectors</option>
-                  <option value="Energy">Energy</option>
-                  <option value="Materials">Materials</option>
-                  <option value="Industrials">Industrials</option>
-                  <option value="Utilities">Utilities</option>
-                  <option value="Healthcare">Healthcare</option>
-                  <option value="Financials">Financials</option>
-                  <option value="Consumer Discretionary">Consumer Discretionary</option>
-                  <option value="Consumer Staples">Consumer Staples</option>
-                  <option value="Information Technology">Information Technology</option>
-                  <option value="Communication Services">Communication Services</option>
-                  <option value="Real Estate">Real Estate</option>
-                  <option value="Unspecified">Unspecified</option>
-                </select>
-              </label>
-
-              <label class="field" for="sort-select">
-                <span>Sort Records</span>
-                <select id="sort-select">
-                  <option value="default">Default Order</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="quantity-asc">Quantity: Low to High</option>
-                  <option value="quantity-desc">Quantity: High to Low</option>
-                </select>
-              </label>
-            </section>
 
             <div class="table-wrap">
               <table id="stocks-table">
