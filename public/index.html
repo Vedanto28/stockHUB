@@ -23,12 +23,12 @@
           <h2 id="form-title">Add New Stock</h2>
           <p class="panel-copy">Use the form to create a new stock or edit an existing one.</p>
 
-          <form id="stock-form" novalidate>
+          <form id="stock-form">
             <input type="hidden" id="stock-id" />
 
             <label class="field" for="name">
               <span>Stock Name</span>
-              <input id="name" name="name" type="text" maxlength="255" placeholder="Example: Reliance" required />
+              <input id="name" name="name" type="text" minlength="2" maxlength="255" pattern="[A-Za-z ]+" title="Use letters and spaces only." placeholder="Example: Reliance" required />
             </label>
 
             <label class="field" for="sector">

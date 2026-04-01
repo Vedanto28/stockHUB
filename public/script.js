@@ -11,23 +11,7 @@ const refreshBtn = document.getElementById('refresh-btn');
 const messageElement = document.getElementById('message');
 const tableBody = document.querySelector('#stocks-table tbody');
 const chartCanvas = document.getElementById('sector-chart');
-const MAX_NAME_LENGTH = 255;
-const MAX_INT32 = 2147483647;
-const ALLOWED_SECTORS = Object.freeze([
-  'Energy',
-  'Materials',
-  'Industrials',
-  'Utilities',
-  'Healthcare',
-  'Financials',
-  'Consumer Discretionary',
-  'Consumer Staples',
-  'Information Technology',
-  'Communication Services',
-  'Real Estate',
-  'Unspecified',
-]);
-const allowedSectorSet = new Set(ALLOWED_SECTORS);
+const namePattern = /^[A-Za-z ]+$/;
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -35,102 +19,53 @@ const currencyFormatter = new Intl.NumberFormat('en-IN', {
   minimumFractionDigits: 2,
 });
 
-const state = {
-  stocks: [],
-  chart: null,
-};
+let stocks = [];
+let chart = null;
 
 function setMessage(message, type = '') {
   messageElement.textContent = message;
-  messageElement.className = `message${type ? ` ${type}` : ''}`;
+  messageElement.className = `message ${type}`.trim();
 }
 
 function setLoading(isLoading) {
-  submitBtn.disabled = isLoading;   
+  submitBtn.disabled = isLoading;
   refreshBtn.disabled = isLoading;
 }
 
-function normalizeText(value) {
-  return typeof value === 'string' ? value.trim() : ''; 
-}
-
-function parsePositivePrice(value) {
-  const priceText = normalizeText(value);
-
-  if (!/^\d+(\.\d{1,2})?$/.test(priceText)) {
-    return { error: 'Price must be a valid amount with up to 2 decimal places.' };
-  }
-
-  const price = Number(priceText);
-  if (!Number.isFinite(price) || price <= 0) {
-    return { error: 'Price must be greater than 0.' };
-  }
-
-  return { value: price };
-}
-
-function parseQuantity(value) {
-  const quantityText = normalizeText(value);
-
-  if (!/^(0|[1-9]\d*)$/.test(quantityText)) { 
-    return { error: 'Quantity must be a whole number 0 or greater.' };
-  }
-
-  const quantity = Number(quantityText);
-  if (!Number.isSafeInteger(quantity) || quantity > MAX_INT32) {
-    return { error: `Quantity must be less than or equal to ${MAX_INT32}.` };
-  }
-
-  return { value: quantity };
-}
-
-function validateFormData(values) {
-  const name = normalizeText(values.name);
-  const sector = normalizeText(values.sector);
+function validateForm() {
+  const name = nameInput.value.trim();
+  const sector = sectorInput.value;
+  const price = Number(priceInput.value);
+  const quantity = Number(quantityInput.value);
 
   if (!name) {
     return { error: 'Name is required.' };
   }
 
-  if (name.length > MAX_NAME_LENGTH) {
-    return { error: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` };
+  if (!namePattern.test(name)) {
+    return { error: 'Name must contain only letters and spaces.' };
   }
 
   if (!sector) {
-    return { error: 'Please select a sector.' };
+    return { error: 'Sector is required.' };
   }
 
-  if (!allowedSectorSet.has(sector)) {
-    return { error: 'Please choose a valid sector.' };
+  if (isNaN(price) || price <= 0) {
+    return { error: 'Price must be greater than 0.' };
   }
 
-  const { error: priceError, value: price } = parsePositivePrice(values.price);
-  if (priceError) {
-    return { error: priceError };
-  }
-
-  const { error: quantityError, value: quantity } = parseQuantity(values.quantity);
-  if (quantityError) {
-    return { error: quantityError };
+  if (!Number.isInteger(quantity) || quantity < 0) {
+    return { error: 'Quantity must be 0 or greater.' };
   }
 
   return {
-    value: {
+    stock: {
       name,
       sector,
       price,
       quantity,
     },
   };
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function resetForm() {
@@ -150,25 +85,21 @@ function fillForm(stock) {
   formTitle.textContent = `Edit Stock #${stock.id}`;
   submitBtn.textContent = 'Update Stock';
   cancelBtn.hidden = false;
-  nameInput.focus();
 }
 
-function renderTable(stocks) {
-  if (!stocks.length) {
-    tableBody.innerHTML = '<tr><td colspan="6" class="empty-state">No stocks found. Add your first stock record.</td></tr>';
+function renderTable() {
+  if (stocks.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="6" class="empty-state">No stocks found.</td></tr>';
     return;
   }
 
   tableBody.innerHTML = stocks
-    .map((stock) => {
-      const safeName = escapeHtml(stock.name);
-      const safeSectorValue = escapeHtml(stock.sector || '');
-      const safeSectorLabel = escapeHtml(stock.sector || 'Not set');
-      return `
+    .map(
+      (stock) => `
         <tr>
           <td>${stock.id}</td>
-          <td>${safeName}</td>
-          <td>${safeSectorLabel}</td>
+          <td>${stock.name}</td>
+          <td>${stock.sector}</td>
           <td>${currencyFormatter.format(Number(stock.price))}</td>
           <td>${stock.quantity}</td>
           <td>
@@ -178,8 +109,8 @@ function renderTable(stocks) {
                 class="btn-edit"
                 data-action="edit"
                 data-id="${stock.id}"
-                data-name="${safeName}"
-                data-sector="${safeSectorValue}"
+                data-name="${stock.name}"
+                data-sector="${stock.sector}"
                 data-price="${stock.price}"
                 data-quantity="${stock.quantity}"
               >
@@ -191,37 +122,33 @@ function renderTable(stocks) {
             </div>
           </td>
         </tr>
-      `;
-    })
+      `
+    )
     .join('');
 }
 
-function renderChart(stocks) {
-  const sectorCounts = stocks.reduce((accumulator, stock) => {
-    const key = stock.sector || 'Unspecified';
-    accumulator[key] = (accumulator[key] || 0) + 1;
-    return accumulator;
-  }, {});
+function renderChart() {
+  const sectorCounts = {};
 
-  const labels = Object.keys(sectorCounts);
-  const values = Object.values(sectorCounts);
+  stocks.forEach((stock) => {
+    if (sectorCounts[stock.sector]) {
+      sectorCounts[stock.sector] += 1;
+    } else {
+      sectorCounts[stock.sector] = 1;
+    }
+  });
 
-  if (state.chart) {
-    state.chart.destroy();
+  if (chart) {
+    chart.destroy();
   }
 
-  if (!labels.length || typeof Chart === 'undefined') {
-    state.chart = null;
-    return;
-  }
-
-  state.chart = new Chart(chartCanvas, {
+  chart = new Chart(chartCanvas, {
     type: 'pie',
     data: {
-      labels,
+      labels: Object.keys(sectorCounts),
       datasets: [
         {
-          data: values,
+          data: Object.values(sectorCounts),
           backgroundColor: [
             '#0f766e',
             '#f59e0b',
@@ -231,23 +158,13 @@ function renderChart(stocks) {
             '#0ea5e9',
             '#84cc16',
             '#f97316',
-            '#14b8a6',
-            '#8b5cf6',
-            '#ec4899',
           ],
-          borderColor: '#fffaf3',
-          borderWidth: 2,
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-        },
-      },
     },
   });
 }
@@ -258,17 +175,14 @@ async function fetchStocks() {
     setMessage('Loading stocks...');
 
     const response = await fetch('/stocks');
-    if (!response.ok) {
-      throw new Error('Unable to fetch stock records.');
-    }
+    stocks = await response.json();
 
-    state.stocks = await response.json();
-    renderTable(state.stocks);
-    renderChart(state.stocks);
-    setMessage(`Loaded ${state.stocks.length} stock record${state.stocks.length === 1 ? '' : 's'}.`);
+    renderTable();
+    renderChart();
+    setMessage('Stocks loaded successfully.', 'success');
   } catch (error) {
     console.error(error);
-    setMessage(error.message || 'Failed to fetch stocks.', 'error');
+    setMessage('Unable to fetch stocks.', 'error');
   } finally {
     setLoading(false);
   }
@@ -278,19 +192,14 @@ async function saveStock(event) {
   event.preventDefault();
 
   const stockId = idInput.value;
-  const { error: validationError, value: payload } = validateFormData({
-    name: nameInput.value,
-    sector: sectorInput.value,
-    price: priceInput.value,
-    quantity: quantityInput.value,
-  });
+  const { error, stock } = validateForm();
+
+  if (error) {
+    setMessage(error, 'error');
+    return;
+  }
 
   try {
-    if (validationError) {
-      setMessage(validationError, 'error');
-      return;
-    }
-
     setLoading(true);
 
     const response = await fetch(stockId ? `/stocks/${stockId}` : '/stocks', {
@@ -298,34 +207,64 @@ async function saveStock(event) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(stock),
     });
 
+    const data = await response.json().catch(() => null);
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Unable to save the stock.');
+      throw new Error(data?.error || 'Unable to save stock.');
     }
 
     setMessage(stockId ? 'Stock updated successfully.' : 'Stock added successfully.', 'success');
     resetForm();
-    await fetchStocks();
+    fetchStocks();
   } catch (error) {
     console.error(error);
-    setMessage(error.message || 'Operation failed.', 'error');
+    setMessage(error.message, 'error');
   } finally {
     setLoading(false);
   }
 }
 
-async function handleTableAction(event) {
+async function deleteStock(id) {
+  const confirmed = window.confirm('Are you sure you want to delete this stock?');
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const response = await fetch(`/stocks/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw new Error(data?.error || 'Unable to delete stock.');
+    }
+
+    setMessage('Stock deleted successfully.', 'success');
+    resetForm();
+    fetchStocks();
+  } catch (error) {
+    console.error(error);
+    setMessage(error.message, 'error');
+  } finally {
+    setLoading(false);
+  }
+}
+
+tableBody.addEventListener('click', (event) => {
   const button = event.target.closest('button');
+
   if (!button) {
     return;
   }
 
-  const action = button.dataset.action;
-
-  if (action === 'edit') {
+  if (button.dataset.action === 'edit') {
     fillForm({
       id: button.dataset.id,
       name: button.dataset.name,
@@ -333,51 +272,15 @@ async function handleTableAction(event) {
       price: button.dataset.price,
       quantity: button.dataset.quantity,
     });
-    return;
   }
 
-  if (action !== 'delete') {
-    return;
+  if (button.dataset.action === 'delete') {
+    deleteStock(button.dataset.id);
   }
-
-  const stockId = button.dataset.id;
-  const isConfirmed = window.confirm('Are you sure you want to delete this stock?');
-  if (!isConfirmed) {
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const response = await fetch(`/stocks/${stockId}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Unable to delete the stock.');
-    }
-
-    if (idInput.value === stockId) {
-      resetForm();
-    }
-
-    setMessage('Stock deleted successfully.', 'success');
-    await fetchStocks();
-  } catch (error) {
-    console.error(error);
-    setMessage(error.message || 'Delete failed.', 'error');
-  } finally {
-    setLoading(false);
-  }
-}
+});
 
 form.addEventListener('submit', saveStock);
-cancelBtn.addEventListener('click', () => {
-  resetForm();
-  setMessage('Edit cancelled.');
-});
+cancelBtn.addEventListener('click', resetForm);
 refreshBtn.addEventListener('click', fetchStocks);
-tableBody.addEventListener('click', handleTableAction);
 
 fetchStocks();
